@@ -1,0 +1,124 @@
+.dashboardContainer {
+  flex: 1;
+  background-color: #F5F5F5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Header */
+.dashboardHeader {
+  height: 75px;
+  background-color: #FF8C00;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+  z-index: 10;
+}
+
+.headerText {
+  color: #FFF;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  transition: opacity 0.2s;
+}
+
+.iconBtn:hover {
+  opacity: 0.8;
+}
+
+/* Conteúdo */
+.dashboardContent {
+  padding: 20px;
+  padding-bottom: 40px;
+  flex: 1;
+}
+
+.welcomeSection {
+  margin-top: 10px;
+  margin-bottom: 25px;
+}
+
+.welcomeText {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+
+.subtitleText {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+/* Cards de Menu */
+.menuContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.menuCard {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #FFF;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menuCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.iconContainer {
+  width: 60px;
+  height: 60px;
+  border-radius: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.menuInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.menuTitle {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.menuDescription {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.4;
+  margin: 0;
+}

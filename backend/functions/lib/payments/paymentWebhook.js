@@ -1,0 +1,91 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.paymentWebhook = void 0;
+const functions = __importStar(require("firebase-functions"));
+const admin = __importStar(require("firebase-admin"));
+const firebase_1 = require("../config/firebase");
+/**
+ * HTTP REST endpoint focado em recepcionar callbacks vindos do Gateway de Pagamento,
+ * logo, não usaremos o utilitaritário onCall (que carrega token client-side automático).
+ */
+exports.paymentWebhook = functions.https.onRequest(async (req, res) => {
+    // Webhooks costumam ser via POST
+    if (req.method !== 'POST') {
+        res.status(405).send('O método fornecido não é suportado.');
+        return;
+    }
+    const { orderId, status } = req.body;
+    // Autenticação mockada contrainjeções 
+    // Em um cenário real usa-se assinatura do corpo do Stripe, HMAC do Pagar.me ou tokens definidos no console
+    const internalSecret = req.headers['x-webhook-token'];
+    // Supondo que em production configuramos o secret das functions config ou variáveis de ambiente
+    if (internalSecret !== 'sua-chave-secreta-webhook-pedeae-2026') {
+        functions.logger.warn(`Chamada não autêntica para o pedido: ${orderId}`);
+        res.status(401).send('Não autorizado.');
+        return;
+    }
+    // Lógica para marcar pagamento na collection "orders"
+    if (status === 'approved' && orderId) {
+        try {
+            const orderRef = firebase_1.db.collection('orders').doc(orderId);
+            const orderSnap = await orderRef.get();
+            if (!orderSnap.exists) {
+                functions.logger.warn(`Recebemos webhook para pedido não existente: ${orderId}`);
+                res.status(404).send('Pedido inlocalizável.');
+                return;
+            }
+            const currentStatus = orderSnap.data()?.status;
+            if (currentStatus === 'pendente_pagamento') {
+                // Ao efetuar esta mutação no Firebase, o trigger `onOrderStatusChange`
+                // é engatilhado no background magicamente!
+                await orderRef.update({
+                    status: 'novo',
+                    paymentApprovedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                functions.logger.info(`Pagamento liquidado via webhook com sucesso. ID Origem: ${orderId}`);
+            }
+            res.status(200).send({ received: true });
+        }
+        catch (error) {
+            functions.logger.error('Erro transacional na recepção do gateway:', error);
+            res.status(500).send('Erro interno do servidor.');
+        }
+    }
+    else {
+        res.status(400).send('Payload malformado.');
+    }
+});
+//# sourceMappingURL=paymentWebhook.js.map

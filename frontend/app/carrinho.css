@@ -1,0 +1,229 @@
+/* Reset básico para Web */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Container Principal */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #F8F9FA;
+  position: relative;
+}
+
+/* Header */
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 20px 20px 20px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #EEEEEE;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.backButton:hover {
+  background-color: #F0F0F0;
+}
+
+.headerTitles {
+  flex: 1;
+  margin-left: 15px;
+}
+
+.headerTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FF8200;
+  margin: 0;
+}
+
+.headerSubtitle {
+  font-size: 13px;
+  color: #888888;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Lista de Itens */
+.listContainer {
+  padding: 20px;
+  flex: 1;
+}
+
+.cartItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #F0F0F0;
+}
+
+.productImage {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  margin-right: 15px;
+  object-fit: cover;
+  background-color: #F0F0F0;
+}
+
+.productInfo {
+  flex: 1;
+}
+
+.productName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #333333;
+  margin-bottom: 4px;
+}
+
+.productPrice {
+  font-size: 14px;
+  font-weight: 600;
+  color: #FF8200;
+}
+
+/* Controles de Quantidade */
+.actionsContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.quantityControl {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #F5F5F5;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.quantityBtn {
+  background: white;
+  border: 1px solid #E0E0E0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.quantityBtn:active {
+  transform: scale(0.9);
+}
+
+.quantityText {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 12px;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  color: #FF4444;
+  opacity: 0.7;
+}
+
+.deleteBtn:hover {
+  opacity: 1;
+}
+
+/* Estado Vazio */
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 40px;
+  text-align: center;
+}
+
+.emptyText {
+  font-size: 16px;
+  color: #999;
+  margin-top: 15px;
+}
+
+/* Footer / Total */
+.footer {
+  padding: 25px 20px;
+  background-color: #FFFFFF;
+  border-top-left-radius: 25px;
+  border-top-right-radius: 25px;
+  box-shadow: 0px -10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.totalContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.totalText {
+  font-size: 16px;
+  color: #666;
+  font-weight: 500;
+}
+
+.totalValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: #333;
+}
+
+.confirmButton {
+  background: linear-gradient(90deg, #FF8200 0%, #FF9F00 100%);
+  border: none;
+  width: 100%;
+  padding: 18px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.confirmButton:hover {
+  opacity: 0.9;
+}
+
+.confirmButtonText {
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}

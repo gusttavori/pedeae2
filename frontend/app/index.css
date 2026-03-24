@@ -1,0 +1,251 @@
+/* Reset e Fundo */
+.homeContainer {
+  background-color: #fcfcfc;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 500px; /* Mantém aspecto de celular no PC */
+  margin: 0 auto;
+}
+
+/* Header */
+.homeHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 20px;
+  background-color: #ffffff;
+}
+
+.greetingText {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.brandText {
+  font-size: 24px;
+  font-weight: 800;
+  color: #FF8C00;
+  margin: 0;
+}
+
+/* Estilo para o Logo no Header */
+.brandLogo {
+  height: 32px; /* Ajuste a altura conforme o seu design */
+  width: auto;
+  margin-top: 5px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Opcional: Ajuste o alinhamento do texto acima do logo */
+.greetingText {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: -2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cartBtn {
+  position: relative;
+  background: #f5f5f5;
+  border: none;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #E33E42;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #fff;
+}
+
+/* Categorias */
+.categoryScroll {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  padding: 10px 20px;
+  gap: 12px;
+  scrollbar-width: none; /* Esconde scroll no Firefox */
+}
+
+.categoryScroll::-webkit-scrollbar {
+  display: none; /* Esconde scroll no Chrome/Safari */
+}
+
+.categoryItem {
+  padding: 10px 20px;
+  background-color: #f0f0f0;
+  border-radius: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-weight: 600;
+  color: #666;
+}
+
+.categoryItemActive {
+  background-color: #FF8C00;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(255, 140, 0, 0.3);
+}
+
+/* Lista de Produtos */
+.productList {
+  padding: 10px 20px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.productCard {
+  display: flex;
+  flex-direction: row;
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+  border: 1px solid #f0f0f0;
+}
+
+.prodImg {
+  width: 90px;
+  height: 90px;
+  border-radius: 15px;
+  object-fit: cover;
+}
+
+.prodInfo {
+  flex: 1;
+  margin-left: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.prodTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.prodDesc {
+  font-size: 12px;
+  color: #999;
+  margin: 4px 0;
+  line-height: 16px;
+}
+
+.priceRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prodPrice {
+  font-size: 17px;
+  font-weight: 800;
+  color: #333;
+}
+
+.addBtn {
+  background-color: #FF8C00;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(255, 140, 0, 0.2);
+}
+
+/* Admin FAB */
+.adminFab {
+  position: fixed;
+  bottom: 30px;
+  right: 20px;
+  background-color: #333;
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 50px;
+  text-align: center;
+  color: #999;
+}
+
+/* Estilos para a descrição escondida/expandida */
+.prodDesc {
+  font-size: 12px;
+  color: #888;
+  margin: 4px 0;
+  line-height: 16px;
+  transition: all 0.3s ease; /* Transição suave */
+}
+
+/* Quando escondido: limita a 1 linha e coloca "..." */
+.descHidden {
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* Número de linhas visíveis */
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 16px; 
+}
+
+/* Quando visível: mostra tudo */
+.descVisible {
+  display: block;
+  max-height: 500px; /* Valor alto para permitir expansão */
+  color: #555;
+  margin-bottom: 10px;
+}
+
+/* Ajuste no card quando expandido */
+.productCard {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cardExpanded {
+  border-color: #FF8C00;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  transform: scale(1.02); /* Leve destaque */
+}
+
+.productCard:hover {
+  background-color: #fafafa;
+}

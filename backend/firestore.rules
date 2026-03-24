@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. PRODUTOS (Ajustado para o nome que você usa no código)
+    match /produtos/{productId} {
+      allow read: if true; // Qualquer um vê o cardápio
+      allow write: if true; // Liberado temporariamente para você cadastrar no emulador
+    }
+
+    // 2. PEDIDOS
+    match /pedidos/{orderId} {
+      allow read, write: if true; // Liberado para testarmos o fluxo completo
+    }
+
+    // 3. REGRAS GERAIS (Para outras coleções que você venha a criar)
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
