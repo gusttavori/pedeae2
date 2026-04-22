@@ -75,3 +75,5 @@ backend/functions/firebase-export-*/
 .expo/
 dist/
 web-build/
+
+lib/
