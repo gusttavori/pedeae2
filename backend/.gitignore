@@ -70,3 +70,8 @@ node_modules/
 
 backend/dados-pedeae/
 backend/functions/firebase-export-*/
+
+# Expo e Build
+.expo/
+dist/
+web-build/
