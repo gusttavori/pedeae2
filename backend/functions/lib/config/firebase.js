@@ -34,13 +34,16 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.messaging = exports.auth = exports.db = void 0;
+// Importa Biblioteca Firebase Admin SDK que dá privilégios Master absolutos no Banco para o servidor NodeJS Backend API Cloud Functions Node Server.
 const admin = __importStar(require("firebase-admin"));
 // Initialize the Firebase admin app
-// It automatically discovers service account credentials in standard environments
+// Descobre/Carrega automaticamente O Cofre de Senhas Credenciais Secretas Contas Projetos Google Cloud Environments (.env / GCloud json Secrets) Servidores padrão V8 Google VMs Docker 
+// Evita Dupla Inicializações Globais checando o Tamanho da Array de Apps Ligados Boolean If Validation
 if (!admin.apps.length) {
-    admin.initializeApp();
+    admin.initializeApp(); // Inicia Conexao Com DB. Cloud DB Boot
 }
-exports.db = admin.firestore();
-exports.auth = admin.auth();
-exports.messaging = admin.messaging();
+// Exporta Variaveis de Acesso Direto para Facilitar uso em outros Arquivos sem ter que Chamar 'admin.x()' Toda Hora
+exports.db = admin.firestore(); // Conexao Com Banco de Dados NoSQL Módulos Firestore
+exports.auth = admin.auth(); // Conexao Gestão de Usuários e Tokens Modulo Auth
+exports.messaging = admin.messaging(); // Conexao Servidor Mensagens/Notificações Push App Modulo Cloud Messaging FCM Notifications Push Engine Messaging Modulo
 //# sourceMappingURL=firebase.js.map

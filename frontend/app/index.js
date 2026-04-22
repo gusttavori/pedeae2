@@ -38,6 +38,8 @@ export default function HomeScreen() {
   const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
   // Cria estado para guardar o ID de qual produto o usuário clicou para expandir (ver mais descrição)
   const [expandedId, setExpandedId] = useState(null);
+  // Estado para controlar a notificação de item adicionado (Toast)
+  const [showToast, setShowToast] = useState(false);
 
   // Hook useEffect que é executado automaticamente assim que a tela abre, buscando dados do servidor
   useEffect(() => {
@@ -151,6 +153,9 @@ export default function HomeScreen() {
                       e.stopPropagation();
                       // Empurra/Envia Propiedades Chave para Função ContextReducer Hook Guardar na Memória Ram Global App do Array Carrinho
                       addItem({ id: item.id, title: item.nome, price: item.preco, image: item.imagem });
+                      // Lógica do Toast
+                      setShowToast(true);
+                      setTimeout(() => setShowToast(false), 2500);
                     }}>
                       <Ionicons name="add" size={20} color="#FFF" />
                     </button>
@@ -165,9 +170,16 @@ export default function HomeScreen() {
       {/* Função Escondida (Secret Menu) no formato Material Design Botão Flutuante Action FAB */}
       {/* Botão Admin - Tenta direcionar link à Área Restrita mas o Gateway Middleware _layout OBRIGA que Usuários façam Login validado Firebase Auth caso n estejam autenticados nos cookies do device*/}
       <button className="adminFab" onClick={() => router.push('/admin/dashboard')}>
-        {/* ícone decorativo engrenagens de Settings */}
-        <Ionicons name="settings-outline" size={22} color="#FFF" /> 
+        <Ionicons name="lock-closed-outline" size={22} color="#FFF" /> 
       </button>
+
+      {/* Alerta Toast Flutuante */}
+      {showToast && (
+        <div className="toastAlert">
+          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+          <span>Adicionado ao carrinho</span>
+        </div>
+      )}
     </div>
   );
 }

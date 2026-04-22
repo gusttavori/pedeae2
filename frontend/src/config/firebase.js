@@ -38,6 +38,12 @@ export const functions = getFunctions(app);
 export const auth = getAuth(app);
 
 // Verifica se o ambiente de execução atual é "development" (modo de desenvolvimento local)
+// -----------------------------------------------------------------------------
+// BLOCO COMENTADO PARA A APRESENTAÇÃO: 
+// O app agora conectará diretamente ao Firebase na nuvem, permitindo que a Vercel 
+// e os usuários finais acessem os dados reais.
+// -----------------------------------------------------------------------------
+/*
 if (process.env.NODE_ENV === 'development') {
   // Imprime um aviso no console indicando que tentará conectar aos emuladores
   console.log("🔥 PedeAê tentando conectar aos Emuladores Locais...");
@@ -52,3 +58,4 @@ if (process.env.NODE_ENV === 'development') {
   // Conecta nossa instância de Autenticação ao emulador local rodando na porta 9099
   connectAuthEmulator(auth, "http://localhost:9099");
 }
+*/

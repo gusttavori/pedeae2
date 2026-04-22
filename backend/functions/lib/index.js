@@ -1,4 +1,5 @@
 "use strict";
+// Arquivo Raiz (Entrypoint) do Servidor Backend Node.js Functions API Endpoints Triggers Entry Mapping Root file index
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -34,15 +35,19 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reports = exports.webhook = exports.payments = exports.orderStatus = exports.orders = exports.auth = void 0;
+// Roda Configuração e Instancia Conexões C Google Servidores Base Boot
 require("./config/firebase"); // Inicializa os subsistemas padrão.
-// 1. Auth Triggers
+// Area 1. Gerenciadores de Auth e Eventos de Conta Users Mappings Endpoints Groups
+// Exporta Todas as Funções Daquele Arquivo sob o "Guarda-Chuva/Namespace" Objeto 'auth.' Ex (auth.onUserCreated)
 exports.auth = __importStar(require("./auth/onUserCreated"));
-// 2. Orders Core
+// Area 2. Lógicas De Negocio Core Pedidos (Ordens Vendas Carts Transactions Modules Orders Endpoints)
+// Exporta lógica anti-fraude E Recalculos Seguros Core
 exports.orders = __importStar(require("./orders/onOrderCreate"));
+// Exporta Hook Listener Tracker mudanças de Steps Kitchen Display System Webhooks Update Status Logs Events
 exports.orderStatus = __importStar(require("./orders/onOrderStatusChange"));
-// 3. Pagamentos
-exports.payments = __importStar(require("./payments/createPayment"));
-exports.webhook = __importStar(require("./payments/paymentWebhook"));
-// 4. Relatórios / Admin
-exports.reports = __importStar(require("./reports/generateReports"));
+// Area 3. Gateways e Dinheiros (Transações Pix Cartoes Integrações Webhooks Gateway Financeiro Modules Payment Webhooks Server WebHooks Payloads Triggers CallBacks)
+exports.payments = __importStar(require("./payments/createPayment")); // Geração Codigos
+exports.webhook = __importStar(require("./payments/paymentWebhook")); // Escuta Assincrona de Servidores Externos Pós Payment Approved Callbacks Responses Receivers
+// Area 4. CronJobs Agendadas Administrativo Exports Analytical Data BI System Endpoints
+exports.reports = __importStar(require("./reports/generateReports")); // Cron Scheduler Reports Export CSV Excel System Gen API Builder API Builder Function Node
 //# sourceMappingURL=index.js.map
