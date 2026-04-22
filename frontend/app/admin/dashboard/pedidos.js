@@ -1,203 +1,211 @@
-// Importa o React e hooks para estados e efeitos
 import React, { useState, useEffect } from 'react';
-// Importa o pacote de ícones padronizado
+import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// Importa o roteador para navegação entre as telas
 import { useRouter } from 'expo-router';
-// Importa componentes visuais básicos do React Native
-import { Image, ActivityIndicator } from 'react-native';
 
-// Importa funções do Firebase Firestore para lidar com o banco de dados em tempo real
+// Ferramentas para ouvir o banco em tempo real e atualizar documentos específicos
 import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
-// Importa a instância ativa e pré-configurada do nosso Firestore
 import { db } from '../../../src/config/firebase';
 
-// Importa o arquivo CSS exclusivo desta tela
-import './pedidos.css';
+import { styles } from './PedidosScreen.styles';
 
-// Constante que define as categorias de filtro das abas disponíveis
+// Lista de categorias para a barra de abas (Tabs) superior
 const STATUS_LIST = ['Todos', 'Novos', 'Preparando', 'Prontos', 'Entregues'];
 
-// Função principal que exporta a Tela de Pedidos (KDS - Kitchen Display System)
 export default function PedidosScreen() {
-    // Inicializa o hook de navegação
     const router = useRouter();
-    // Cria estado para rastrear qual aba de filtro está selecionada
-    const [activeTab, setActiveTab] = useState('Todos');
-    // Cria estado para armazenar a matriz de pedidos recebidos do Firebase
-    const [pedidos, setPedidos] = useState([]);
-    // Cria estado de controle para mostrar o spinner de carregamento inicial
-    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('Todos'); // Controla qual aba está selecionada
+    const [pedidos, setPedidos] = useState([]); // Armazena a lista total de pedidos do banco
+    const [loading, setLoading] = useState(true); // Controla o estado de carregamento inicial
 
-    // 1. Hook de Efeito que escuta os pedidos do Firebase em tempo real
+    // --- ESCUTA EM TEMPO REAL ---
     useEffect(() => {
-        // Monta a consulta de pesquisa pedindo todos os itens da coleção "pedidos" ordenados por data
+        // Busca todos os pedidos, ordenando pelos mais recentes primeiro
         const q = query(collection(db, 'pedidos'), orderBy('criadoEm', 'desc'));
         
-        // Abre um "Ouvinte" (Websocket) contínuo do Firebase (onSnapshot) que atualiza automaticamente
+        // O onSnapshot cria um canal aberto com o Firebase. Mudou lá, muda aqui na hora!
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            // Mapeia o resultado bruto do banco para um array de objetos Javascript puros
             const lista = snapshot.docs.map(doc => ({
-                id: doc.id, // Pega o identificador de chave primária do Documento (Doc ID)
-                ...doc.data() // Pega todos os demais parâmetros espalhando as propriedades
+                id: doc.id,
+                ...doc.data()
             }));
-            // Salva a lista convertida no estado
             setPedidos(lista);
-            // Avisa que o carregamento terminou e esconde o ícone de Loading
             setLoading(false);
         });
 
-        // Retorna a função de limpeza (Garante que vai fechar o ouvinte ao sair da tela)
+        // Importante: Fecha a conexão ao sair da tela para não gastar dados à toa
         return () => unsubscribe();
-    }, []); // Array de dependência vazio faz com que execute apenas 1x ao entrar na tela
+    }, []);
 
-    // 2. Altera o status do pedido no Banco de Dados
+    /**
+     * Função para mover o pedido no fluxo (ex: de Pendente para Preparando)
+     */
     const alterarStatus = async (pedidoId, novoStatus) => {
         try {
-            // Aponta exatamente qual documento atualizará via Referência
+            // Referencia o documento exato do pedido pelo ID
             const pedidoRef = doc(db, 'pedidos', pedidoId);
-            // Dispara um patch/update enviando penas o campo que quero alterar (status)
+            // Atualiza apenas o campo 'status' no Firebase
             await updateDoc(pedidoRef, { status: novoStatus });
         } catch (error) {
-            // Registra erro em console e sinaliza ao usuário
             console.error("Erro ao atualizar status:", error);
-            alert("Erro ao atualizar o pedido.");
+            Alert.alert("Erro", "Não foi possível atualizar o status do pedido.");
         }
     };
 
-    // 3. Processamento local puramente lógico: Filtro de Abas
+    // --- FILTRAGEM DINÂMICA ---
+    // Esta lógica filtra a lista de pedidos baseada na aba que o usuário clicou
     const pedidosFiltrados = pedidos.filter(p => {
-        // Se a aba for 'Todos', nenhum item é excluído da tela
         if (activeTab === 'Todos') return true;
-        // Se for Novos, retorna apenas os de status 'pendente' base
         if (activeTab === 'Novos') return p.status === 'pendente';
-        // Se for Preparando, retorna apenas os em preparação
         if (activeTab === 'Preparando') return p.status === 'preparando';
-        // Se for Prontos, filtra e retorna os já prontos
         if (activeTab === 'Prontos') return p.status === 'pronto';
-        // Se for Entregues, filtra os terminados
         if (activeTab === 'Entregues') return p.status === 'entregue';
-        
-        // Retorno de segurança
         return true;
     });
 
-    // Renderiza a interface da KDS
+    // Helpers visuais: definem as cores dos cards e etiquetas (badges) conforme o status
+    const getCardStatusStyle = (status) => {
+        switch(status) {
+            case 'pendente': return styles.statusPendente;
+            case 'preparando': return styles.statusPreparando;
+            case 'pronto': return styles.statusPronto;
+            default: return {};
+        }
+    };
+
+    const getBadgeStyle = (status) => {
+        switch(status) {
+            case 'pendente': return { bg: styles.badgeBgPendente, text: styles.badgeTextPendente };
+            case 'preparando': return { bg: styles.badgeBgPreparando, text: styles.badgeTextPreparando };
+            case 'pronto': return { bg: styles.badgeBgPronto, text: styles.badgeTextPronto };
+            default: return { bg: {}, text: {} };
+        }
+    };
+
     return (
-        // Contêiner Mestre da Tela
-        <div className="kdsContainer">
-            {/* Header fixo no Topo */}
-            <header className="kdsHeader">
-                {/* Botão para Retornar usando o histórico de rotas */}
-                <button className="backBtn" onClick={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </button>
-                {/* Centro do Cabeçalho com Logo e Título */}
-                <div className="headerCenter">
+        <View style={styles.kdsContainer}>
+            {/* CABEÇALHO COM LOGO */}
+            <View style={styles.kdsHeader}>
+                <TouchableOpacity activeOpacity={0.8} style={styles.backBtn} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={24} color="#333333" />
+                </TouchableOpacity>
+                
+                <View style={styles.headerCenter}>
                     <Image 
                         source={require('../../../assets/images/logo-pedeae.png')} 
-                        style={{ width: 100, height: 30, resizeMode: 'contain' }}
+                        style={{ width: 100, height: 30 }}
+                        resizeMode="contain"
                     />
-                    <span className="kdsSubtitle">Painel da Cozinha</span>
-                </div>
-                {/* Divisória fantasma criando contrapeso pro flex-spacebetween ficar centralizado */}
-                <div style={{ width: 40 }}></div>
-            </header>
+                    <Text style={styles.kdsSubtitle}>Painel da Cozinha</Text>
+                </View>
+                <View style={{ width: 40 }}></View>
+            </View>
 
-            {/* Abas de Filtro de Categoria Horizontais */}
-            <div className="tabBar">
-                {/* Laço de repetição que cria as abas a partir da constante STATUS_LIST declarada no topo */}
-                {STATUS_LIST.map((tab) => (
-                    <button 
-                        key={tab} // Chave de otimização exigida pelo React
-                        // Se for a aba ativa injeta um CSS extra pra pinta-la de cor de destaque
-                        className={`tabItem ${activeTab === tab ? 'tabActive' : ''}`}
-                        onClick={() => setActiveTab(tab)} // Altera o estado dinâmico da tela
-                    >
-                        {tab} {/* Exibe o texto da aba */}
-                    </button>
-                ))}
-            </div>
+            {/* BARRA DE ABAS (FILTROS DE STATUS) */}
+            <View style={styles.tabBarContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBarScroll}>
+                    {STATUS_LIST.map((tab) => (
+                        <TouchableOpacity 
+                            key={tab}
+                            activeOpacity={0.8}
+                            style={[styles.tabItem, activeTab === tab && styles.tabActive]}
+                            onPress={() => setActiveTab(tab)}
+                        >
+                            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                                {tab}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
 
-            {/* Conteúdo Principal onde os blocos dos pedidos renderizam */}
-            <main className="kdsContent">
-                {/* Exibição condicional verificando se os Websockets carregaram */}
+            {/* CONTEÚDO PRINCIPAL (LISTA DE PEDIDOS) */}
+            <View style={styles.kdsContent}>
                 {loading ? (
-                    // Se não carregou exibe aviso giratório
-                    <div className="centerInfo">
+                    <View style={styles.centerInfo}>
                         <ActivityIndicator size="large" color="#E33E42" />
-                        <p>Sincronizando pedidos...</p>
-                    </div>
-                // Se já carregou mas houver erro ou array vazio (length 0) 
+                        <Text style={styles.centerInfoText}>Sincronizando pedidos...</Text>
+                    </View>
                 ) : pedidosFiltrados.length === 0 ? (
-                    <div className="centerInfo">
-                        <Ionicons name="restaurant-outline" size={60} color="#DDD" />
-                        <p>Nenhum pedido encontrado.</p>
-                    </div>
-                // Se array for maior de 0 renderiza o GRID Real com os blocos
+                    <View style={styles.centerInfo}>
+                        <Ionicons name="restaurant-outline" size={60} color="#DDDDDD" />
+                        <Text style={styles.centerInfoText}>Nenhum pedido nesta categoria.</Text>
+                    </View>
                 ) : (
-                    <div className="ordersGrid">
-                        {/* Laço de repetição (map) iterando por cada pedido e injetando na view HTML */}
-                        {pedidosFiltrados.map((pedido) => (
-                            // Bloco Unitário visual do Pedido, injetando CSS condicional basedo no campo Firebase 'status'
-                            <div key={pedido.id} className={`orderCard status-${pedido.status}`}>
-                                {/* Cabecalho do bloquinho com n. pedido e mesa */}
-                                <div className="cardHeader">
-                                    <div className="orderInfo">
-                                        {/* Corta o imenso hash ID Firebase pras primeiras 4 letras agindo de 'senha do pedido' via .substring(0,4) */}
-                                        <span className="orderCode">#{pedido.id.substring(0, 4).toUpperCase()}</span>
-                                        <span className="orderMesa">Mesa {pedido.mesa}</span>
-                                    </div>
-                                    {/* Etiqueta colorida usando classe dinamica do status do BD */}
-                                    <span className={`badgeStatus badge-${pedido.status}`}>
-                                        {/* Tradução textual condicional */}
-                                        {pedido.status === 'pendente' ? 'Novo' : pedido.status}
-                                    </span>
-                                </div>
+                    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                        <View style={styles.ordersGrid}>
+                            {pedidosFiltrados.map((pedido) => {
+                                const badgeStyles = getBadgeStyle(pedido.status);
 
-                                {/* Corpo principal onde iteramos outra vez a matriz interna 'itens do carrinho' deste pedido em cascata */}
-                                <div className="cardBody">
-                                    {pedido.itens.map((item, idx) => (
-                                        <div key={idx} className="orderItem">
-                                            {/* Quantidade escolhida no carrinho */}
-                                            <span className="itemQty">{item.quantity}x</span>
-                                            {/* Nome salvo do Produto para este item */}
-                                            <span className="itemName">{item.title || item.nome}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                                return (
+                                    <View key={pedido.id} style={[styles.orderCard, getCardStatusStyle(pedido.status)]}>
+                                        {/* TOPO DO CARD: Código e Mesa */}
+                                        <View style={styles.cardHeader}>
+                                            <View style={styles.orderInfo}>
+                                                <Text style={styles.orderCode}>
+                                                    #{pedido.id.substring(0, 4).toUpperCase()}
+                                                </Text>
+                                                <Text style={styles.orderMesa}>Mesa {pedido.mesa}</Text>
+                                            </View>
+                                            
+                                            <View style={[styles.badgeStatus, badgeStyles.bg]}>
+                                                <Text style={[styles.badgeText, badgeStyles.text]}>
+                                                    {pedido.status === 'pendente' ? 'NOVO' : pedido.status}
+                                                </Text>
+                                            </View>
+                                        </View>
 
-                                {/* Rodapé do cartao e controles */}
-                                <div className="cardFooter">
-                                    {/* Conversor de ISO Date do Firestore para Hr:mm Legível aos humanos formatado padrao local */}
-                                    <span className="orderTime">
-                                        {new Date(pedido.criadoEm?.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                    
-                                    {/* Botões Acionadores C.R.u.D (Updates) do Status que mudam cores dependendo da etapa (Pipeline) */}
-                                    <div className="actionArea">
-                                        {pedido.status === 'pendente' && (
-                                            <button className="btnAction btnPreparar" onClick={() => alterarStatus(pedido.id, 'preparando')}>
-                                                PREPARAR
-                                            </button>
-                                        )}
-                                        {pedido.status === 'preparando' && (
-                                            <button className="btnAction btnPronto" onClick={() => alterarStatus(pedido.id, 'pronto')}>
-                                                PRONTO
-                                            </button>
-                                        )}
-                                        {pedido.status === 'pronto' && (
-                                            <button className="btnAction btnEntregar" onClick={() => alterarStatus(pedido.id, 'entregue')}>
-                                                ENTREGAR
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                                        {/* CORPO DO CARD: Lista de Itens do pedido */}
+                                        <View style={styles.cardBody}>
+                                            {pedido.itens.map((item, idx) => (
+                                                <View key={idx} style={styles.orderItem}>
+                                                    <Text style={styles.itemQty}>{item.quantity}x</Text>
+                                                    <Text style={styles.itemName}>{item.title || item.nome}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+
+                                        {/* RODAPÉ: Horário e Botões de Ação */}
+                                        <View style={styles.cardFooter}>
+                                            <Text style={styles.orderTime}>
+                                                {new Date(pedido.criadoEm?.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                            
+                                            <View style={styles.actionArea}>
+                                                {/* Botões inteligentes: só aparecem o botão da próxima etapa do processo */}
+                                                {pedido.status === 'pendente' && (
+                                                    <TouchableOpacity 
+                                                        style={[styles.btnAction, styles.btnPreparar]} 
+                                                        onPress={() => alterarStatus(pedido.id, 'preparando')}
+                                                    >
+                                                        <Text style={styles.btnTextAction}>PREPARAR</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                                {pedido.status === 'preparando' && (
+                                                    <TouchableOpacity 
+                                                        style={[styles.btnAction, styles.btnPronto]} 
+                                                        onPress={() => alterarStatus(pedido.id, 'pronto')}
+                                                    >
+                                                        <Text style={styles.btnTextAction}>PRONTO</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                                {pedido.status === 'pronto' && (
+                                                    <TouchableOpacity 
+                                                        style={[styles.btnAction, styles.btnEntregar]} 
+                                                        onPress={() => alterarStatus(pedido.id, 'entregue')}
+                                                    >
+                                                        <Text style={styles.btnTextAction}>ENTREGAR</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    </ScrollView>
                 )}
-            </main>
-        </div>
+            </View>
+        </View>
     );
 }

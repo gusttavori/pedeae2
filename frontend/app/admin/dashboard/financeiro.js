@@ -1,202 +1,204 @@
-// Importa bibliotecas vitais para gerenciamento de interfaces reativas
 import React, { useState, useEffect } from 'react';
-// Importação direta dos icones unificados via @EXPO
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// Importador encarregado pelo expo-router do estado da navegação
 import { useRouter } from 'expo-router';
-// Importa componentes UI padrão disponíveis apenas pelo react-native engine
-import { ActivityIndicator, Image } from 'react-native';
 
-// Pacotão nativo modular do SDK Firebase engarregado das consultas (Queries) No-SQL e Websockets em Tempo Real (Snapshot)
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-// Objeto que detém as credenciais pre-validadas do projeto para os Emuladores/Produção
+// Ferramentas do Firebase para buscar dados em tempo real
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../../../src/config/firebase';
 
-// Vinculação específica das regras CSS referentes apenas ao layout desta tela
-import './financeiro.css';
+// Importa a folha de estilos nativa
+import { styles } from './FinanceiroScreen.styles';
 
-// Função exportável por padrão configurando a Página do Resumo Fiscal / Gráficos de Vendas
 export default function FinanceiroScreen() {
-    // Instanciação em hook do utilitário push/replace/back stack navigation
     const router = useRouter();
     
-    // Configuta as variáveis dinâmicas em Javascript Puro calculando strings para Formatos ISO Datas Exatas
-    // 'Pega o momento corrente de hoje em modelo Dia'
+    // --- CONFIGURAÇÃO DE DATAS PADRÃO ---
+    // Pega a data de hoje e formata para o padrão internacional "YYYY-MM-DD" (ideal para filtragem e inputs)
     const hoje = new Date().toISOString().split('T')[0];
-    // Retrocede temporalmente os calculos matemáticos subtraindo ms equivalentes a 7 Dias para retroativo
+    // Calcula exatamente 7 dias atrás subtraindo os milissegundos correspondentes a uma semana
     const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
-    // Conjunto de Estados hook para manter as datas balizadoras e refazimento de querys condicionais
-    const [dataInicio, setDataInicio] = useState(seteDiasAtras);
+    // --- ESTADOS DO FILTRO DE DATAS ---
+    const [dataInicio, setDataInicio] = useState(seteDiasAtras); // Por padrão, mostra os últimos 7 dias
     const [dataFim, setDataFim] = useState(hoje);
     
-    // Switch de controle para os UI blockers spinners mostrando que as chamadas websockets Firestore demoram Ms.
-    const [loading, setLoading] = useState(true);
-    // Estrutura array que recebe os lotes tratados das documentações pedidas puras após agrupamentos
-    const [dadosProcessados, setDadosProcessados] = useState([]);
-    
-    // Estrutura Object para acúmulo das métricas calculadas unitárias KPI (Receitas Maximas e Médias)
-    const [resumo, setResumo] = useState({ totalReceita: 0, totalPedidos: 0, ticketMedio: 0 });
+    // --- ESTADOS DA TELA ---
+    const [loading, setLoading] = useState(true); // Controla o "giragira" de carregamento
+    const [dadosProcessados, setDadosProcessados] = useState([]); // Guarda os dados já formatados para os gráficos
+    const [resumo, setResumo] = useState({ totalReceita: 0, totalPedidos: 0, ticketMedio: 0 }); // Guarda os totais dos cards superiores
 
-    // Observador React de Ciclo de Vida do Render. É recarregado sempre que as datas de corte alterarem.
+    // --- BUSCA DE DADOS EM TEMPO REAL (FIREBASE) ---
     useEffect(() => {
-        // Indica começo dos processos travamento a UI para não causar falsas contagens
         setLoading(true);
-        // Gera um espelho ou requisição lógica da Coleção 'pedidos' exigindo indexação ascendente ordenando data base
+        // Cria a consulta: busca na coleção 'pedidos', ordenando do mais antigo para o mais novo
         const q = query(collection(db, 'pedidos'), orderBy('criadoEm', 'asc'));
 
-        // Dispara uma conexão permanente bidirecional e fica aguardando envios
+        // onSnapshot "escuta" o banco. Se entrar um pedido novo agora, a tela atualiza sozinha!
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            // Varre o lote do Database (Documentos Firebase) formatando uma nova conversão do TimeStamp pra manipulação simples textual
+            // Mapeia os documentos brutos do Firebase para um formato mais fácil de trabalhar
             const pedidosRaw = snapshot.docs.map(doc => ({
-                ...doc.data(), // Explode todas the properties antigas ao invés de codá-las hard
-                // Insere campo fake recodificando a Timestamp complexo Cloud Firestore nativa ao layout YYYY-MM-DD
+                ...doc.data(), 
+                // O Firebase guarda a data em "seconds". Aqui convertemos de volta para o formato "YYYY-MM-DD"
                 dataFormatada: new Date(doc.data().criadoEm?.seconds * 1000).toISOString().split('T')[0]
             }));
 
-            // Engatilha calculos complexos sobre o array massivo e libera e UI pós tudo carregado na memória cache
+            // Manda os dados brutos para a nossa função que vai fazer a matemática
             processarDados(pedidosRaw);
-            setLoading(false);
+            setLoading(false); // Terminou de calcular, esconde o carregamento
         });
 
-        // Limpador do lixo para impedir conexões duplas quando páginas viram background process.
+        // Limpa a "escuta" do Firebase quando o usuário sai da tela, economizando memória e leitura de banco
         return () => unsubscribe();
-    }, [dataInicio, dataFim]); // Hooks das dependência trigger para forçarem os recalls Reacting Effects 
+    }, [dataInicio, dataFim]); // Se o usuário mudar as datas de Início ou Fim, o useEffect roda de novo
 
-    // O algorítimo encarregado pela filtragem final da memória pura gerando informações cruas as Views (Separa Dados da Tela)
+    /**
+     * Função responsável por filtrar os pedidos e calcular os totais
+     */
     const processarDados = (pedidos) => {
-        // Exclui via ArrowFunctions Filter tudo que ultrapassa/antecede o corte de data (Maior/Menor/Igual) ISO
+        // 1. Filtra apenas os pedidos que estão dentro do período escolhido no topo da tela
         const filtrados = pedidos.filter(p => p.dataFormatada >= dataInicio && p.dataFormatada <= dataFim);
         
-        // Memória ram agrupada em dicionário JS Hash Table puro indexando pelos Dias
         const agrupado = {};
-        // Memória ram numérica base das Receitas Absolutas de Todo período
         let receitaT = 0;
 
-        // Varrerá individualmente os elementos aprovados para as consolidações. Array Loop Iterator.
+        // 2. Agrupa os pedidos dia a dia para podermos montar as barras do gráfico
         filtrados.forEach(p => {
-            // Conversor bruto "YYYY-MM-DD" quebra Array -> Reverte Data -> Pega DD e MM -> Junta com / ficando "DD/MM" (DiaMes Pt_BT)
+            // Pega "2026-04-22" e transforma em "22/04" para ficar bonito no gráfico
             const data = p.dataFormatada.split('-').reverse().slice(0, 2).join('/');
             
-            // Avaliador para Injetar o campo no Dicionário pra ele parar de ser Undefined e aguentar soma ++ (+=) sem gerar Null Pointer Exceptions
+            // Se esse dia ainda não existe no nosso objeto agrupado, cria ele zerado
             if (!agrupado[data]) {
                 agrupado[data] = { receita: 0, pedidos: 0, dia: data };
             }
-            // Realiza incremento lógico castando (Number conversion guarantee) aos acumuladores de Vendas (Money)
+            
+            // Soma o valor do pedido na receita daquele dia específico
             agrupado[data].receita += Number(p.total);
-            // Realiza incremento quantitativo da volume dos docs count (1+1+)
+            // Conta +1 pedido naquele dia
             agrupado[data].pedidos += 1;
-            // Realiza incremento as totais de todos os Dias num loop global de receitas consolidadas
+            
+            // Soma também na receita global (Total do período)
             receitaT += Number(p.total);
         });
 
-        // Achata o objeto Hash agrupado pra de volta se tornar um Puto Array iterável aos grids e Maps React List UI Components
+        // Transforma o objeto de volta em um array (lista) para o React conseguir desenhar na tela (map)
         const listaFinal = Object.values(agrupado);
-        
-        // Joga pro Estado Principal que manda redenrizar telas esse array amassado
         setDadosProcessados(listaFinal);
         
-        // Ajusta as métricas matemáticas globais e se protege via Ternário DivZero Infinito Not-A-Number Errors validando caso Filtragem for vazia
+        // 3. Atualiza os cartões de resumo lá no topo
         setResumo({
             totalReceita: receitaT,
             totalPedidos: filtrados.length,
+            // Ticket Médio: Quanto em média cada cliente gastou? (Evita divisão por zero se não tiver pedidos)
             ticketMedio: filtrados.length > 0 ? receitaT / filtrados.length : 0
         });
     };
 
-    // Cálculos de Flexbox Base 100 Puros achando os Mágicos Tetos (Limits) - O maior fator comparado ao Resto vira divisor base teto do Style Height Inline Percentage Mapping 
+    // --- CÁLCULO DE PROPORÇÃO PARA OS GRÁFICOS ---
+    // Encontra o dia que mais vendeu (em R$) para ele ser a barra de 100% de altura. O ', 1' no final evita barra quebrar se for 0.
     const maxReceita = Math.max(...dadosProcessados.map(d => d.receita), 1);
+    // Encontra o dia com mais volume de pedidos para ser a barra de 100% de altura no segundo gráfico
     const maxPedidos = Math.max(...dadosProcessados.map(d => d.pedidos), 1);
 
-    // O que aparecerá de Interface pro Admin
     return (
-        <div className="finContainer">
-            {/* Header com flexões laterais (Header Top App Bar Layout Pattern Mobile) */}
-            <header className="finHeader">
-                <button className="backBtn" onClick={() => router.back()}>
-                    {/* Botão padronizado Ionicons Dark */}
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </button>
-                <div className="headerInfo">
-                    <span className="finTitle">Financeiro</span>
-                </div>
-                {/* Spacer invisão que compensa os paddings para a título ficar exatamente centralizada no flex-space-between */}
-                <div style={{ width: 40 }}></div>
-            </header>
+        <View style={styles.finContainer}>
+            {/* CABEÇALHO */}
+            <View style={styles.finHeader}>
+                <TouchableOpacity activeOpacity={0.8} style={styles.backBtn} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={24} color="#333333" />
+                </TouchableOpacity>
+                <View style={styles.headerInfo}>
+                    <Text style={styles.finTitle}>Financeiro</Text>
+                </View>
+                <View style={{ width: 40 }}></View> {/* Bloco vazio para forçar o título a ficar centralizado */}
+            </View>
 
-            {/* Painel dedicado isolado para manipular datas Inicio/Fim nativas do Html <input type"date" /> */}
-            <section className="filterSection">
-                <div className="dateInputGroup">
-                    <div className="field">
-                        <label>Início</label>
-                        <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-                    </div>
-                    <div className="field">
-                        <label>Fim</label>
-                        <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-                    </div>
-                </div>
-            </section>
+            {/* SEÇÃO DE FILTROS DE DATA */}
+            <View style={styles.filterSection}>
+                <View style={styles.dateInputGroup}>
+                    <View style={styles.field}>
+                        <Text style={styles.fieldLabel}>Início</Text>
+                        <TextInput 
+                            style={styles.input}
+                            value={dataInicio} 
+                            onChangeText={setDataInicio}
+                            placeholder="YYYY-MM-DD"
+                            keyboardType="numeric" // Facilita a digitação da data pelo celular
+                        />
+                    </View>
+                    <View style={styles.field}>
+                        <Text style={styles.fieldLabel}>Fim</Text>
+                        <TextInput 
+                            style={styles.input}
+                            value={dataFim} 
+                            onChangeText={setDataFim}
+                            placeholder="YYYY-MM-DD"
+                            keyboardType="numeric"
+                        />
+                    </View>
+                </View>
+            </View>
 
-            {/* A Grid Principal responsiva acomodando os Grandes Blocos Informativos Principais Superiores - Cartelas Unitárias - KPIs Views */}
-            <section className="summaryGrid">
-                {/* Cartão de Exibição das Receitas e faturamentos */}
-                <div className="sumCard">
-                    <span className="sumLabel">Receita Total</span>
-                    {/* Pega float nativo formata para Casas Decimais (toFixed 2) e manipula textualmente subindo as Vírgulas ao invez dos Dot Pattern US */}
-                    <span className="sumValue">R$ {resumo.totalReceita.toFixed(2).replace('.', ',')}</span>
-                </div>
-                {/* Cartão Exibição contagem tickets Volume Bruto (Quantos Pedidos Totais Existiram Exatos) */}
-                <div className="sumCard">
-                    <span className="sumLabel">Pedidos</span>
-                    <span className="sumValue">{resumo.totalPedidos}</span>
-                </div>
-                {/* Cartão Informativo cruzamento de dados Volume * Ganho Total Médio Geral Ticket Mídia Mínimo Estimada */}
-                <div className="sumCard">
-                    <span className="sumLabel">Ticket Médio</span>
-                    <span className="sumValue">R$ {resumo.ticketMedio.toFixed(2).replace('.', ',')}</span>
-                </div>
-            </section>
+            {/* CARTÕES DE RESUMO (KPIs) */}
+            <View style={styles.summaryGrid}>
+                <View style={styles.sumCard}>
+                    <Text style={styles.sumLabel}>Receita Total</Text>
+                    {/* toFixed(2) garante 2 casas decimais, replace troca o ponto por vírgula para o padrão BR */}
+                    <Text style={styles.sumValue}>R$ {resumo.totalReceita.toFixed(2).replace('.', ',')}</Text>
+                </View>
+                <View style={styles.sumCard}>
+                    <Text style={styles.sumLabel}>Pedidos</Text>
+                    <Text style={styles.sumValue}>{resumo.totalPedidos}</Text>
+                </View>
+                <View style={styles.sumCard}>
+                    <Text style={styles.sumLabel}>Ticket Médio</Text>
+                    <Text style={styles.sumValue}>R$ {resumo.ticketMedio.toFixed(2).replace('.', ',')}</Text>
+                </View>
+            </View>
 
-            {/* Macro-renderização dependente Condicional React - Exibe Gráficos se Loaded - Se não só animação */}
-            {loading ? (
-                // Spin area carregando com cor do laranjão theme
-                <div className="loaderArea"><ActivityIndicator size="large" color="#FF8C00" /></div>
-            ) : (
-                // Contêiner principal e maior pros Canvas de Bars CSS custom charts puros 
-                <main className="chartsArea">
-                    
-                    {/* Agrupamento Caixa do Relatório Vertical Barras CSS Exemplo (Faturamento e Dinheiro) Dia x Dia Histórico */}
-                    <div className="chartCard">
-                        <h3>Faturamento por Dia</h3>
-                        <div className="chartCanvas">
-                            {/* Um Mapa (Iterativo For Loop) espalhando Divs HTML em Arrays de Pilares - Cada dia equivale a 1 wrapper */}
-                            {dadosProcessados.map((d, i) => (
-                                <div key={i} className="barWrapper">
-                                    <div className="barLabel">R${Math.round(d.receita)}</div>
-                                    {/* MÁGICA: A altura de cada coluna (bar height %) equivale as variáveis maxes em regras da 3 com dados brutos correntes gerando Gráfico orgânico CSS inline styles */}
-                                    <div className="bar" style={{ height: `${(d.receita / maxReceita) * 100}%` }}></div>
-                                    <span className="barDate">{d.dia}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+            {/* ÁREA DOS GRÁFICOS (Com Scroll para não espremer a tela em celulares pequenos) */}
+            <ScrollView contentContainerStyle={styles.scrollArea} showsVerticalScrollIndicator={false}>
+                {loading ? (
+                    // Tela de carregamento enquanto busca os dados
+                    <View style={styles.loaderArea}>
+                        <ActivityIndicator size="large" color="#FF8C00" />
+                    </View>
+                ) : (
+                    <View style={styles.chartsArea}>
+                        
+                        {/* GRÁFICO 1: FATURAMENTO (R$) POR DIA */}
+                        <View style={styles.chartCard}>
+                            <Text style={styles.chartCardTitle}>Faturamento por Dia</Text>
+                            <View style={styles.chartCanvas}>
+                                {dadosProcessados.map((d, i) => (
+                                    <View key={i} style={styles.barWrapper}>
+                                        <Text style={styles.barLabel}>R${Math.round(d.receita)}</Text>
+                                        {/* MÁGICA AQUI: A altura da barra é calculada dinamicamente via porcentagem (ex: 75%) baseado no dia de maior venda (maxReceita) */}
+                                        <View style={[styles.bar, { height: `${(d.receita / maxReceita) * 100}%` }]}></View>
+                                        <Text style={styles.barDate}>{d.dia}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
 
-                    {/* Agrupamento Caixa do Relatório Vertical para Visualização puramente Quantitativas Unitária (Quantidade Em Vez de Grana) */}
-                    <div className="chartCard">
-                        <h3>Volume de Pedidos</h3>
-                        <div className="chartCanvas">
-                            {dadosProcessados.map((d, i) => (
-                                <div key={i} className="barWrapper">
-                                    <div className="barLabel">{d.pedidos}</div>
-                                    <div className="bar barPedidos" style={{ height: `${(d.pedidos / maxPedidos) * 100}%` }}></div>
-                                    <span className="barDate">{d.dia}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </main>
-            )}
-        </div>
+                        {/* GRÁFICO 2: VOLUME DE PEDIDOS (Qtd) POR DIA */}
+                        <View style={styles.chartCard}>
+                            <Text style={styles.chartCardTitle}>Volume de Pedidos</Text>
+                            <View style={styles.chartCanvas}>
+                                {dadosProcessados.map((d, i) => (
+                                    <View key={i} style={styles.barWrapper}>
+                                        <Text style={[styles.barLabel, styles.barLabelPedidos]}>{d.pedidos}</Text>
+                                        {/* Mesma lógica de altura, mas agora comparando com o maxPedidos. Estilo 'barPedidos' muda a cor para escuro. */}
+                                        <View style={[styles.bar, styles.barPedidos, { height: `${(d.pedidos / maxPedidos) * 100}%` }]}></View>
+                                        <Text style={styles.barDate}>{d.dia}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+
+                    </View>
+                )}
+            </ScrollView>
+        </View>
     );
 }

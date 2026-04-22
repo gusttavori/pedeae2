@@ -1,121 +1,131 @@
-// Importa a biblioteca base do React
 import React from 'react';
-// Importa os ícones padronizados via Expo Vector Icons
-import { Ionicons } from '@expo/vector-icons';
-// Importa o hook para lidar com as transições/redirecionamentos de tela
-import { useRouter } from 'expo-router';
-// Importa o método de desconectar os usuários atuais armazenados nos Cookies/DB internos do Firebase
-import { signOut } from 'firebase/auth';
-// Autenticação préviamente iniciada no arquivo inicial do App/Config
-import { auth } from '../../../src/config/firebase';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Biblioteca de ícones
+import { useRouter } from 'expo-router'; // Ferramenta para navegar entre as telas
+import { signOut } from 'firebase/auth'; // Função do Firebase para deslogar
+import { auth } from '../../../src/config/firebase'; // Instância do Firebase configurada no projeto
 
-// Vincula a estilização contendo especificações flexbox desse arquivo
-import './index.css';
+// Importa os estilos que comentamos logo acima
+import { styles } from './AdminDashboardIndex.styles';
 
-// Componente inicial tela do Menu do Dashboard
 export default function AdminDashboardIndex() {
-  // Instância roteador pra gerar controles dos links 
+  // Inicializa o roteador para conseguirmos mudar de tela
   const router = useRouter();
 
-  // Função assíncrona voltada a desconexão de usuários logados perante ao App Firebase Client Auth 
+  /**
+   * Função responsável por deslogar o administrador do sistema.
+   * Ela é "async" (assíncrona) porque depende da resposta da internet/Firebase.
+   */
   const handleSair = async () => {
     try {
-      // Solicita a rede que invalide o token de acesso 
+      // Tenta encerrar a sessão no Firebase
       await signOut(auth);
-      // Registra a saída com sucesso caso libere a Promise de SignOut Firebases
       console.log("Sessão encerrada com sucesso.");
       
-      // REDIRECIONAMENTO FORÇADO: Substitui as pilhas da base pra ninguém dar 'stack back/puxão de volta' com o dedão do Mobile sem novo login.
+      // router.replace remove o histórico. Assim, se o usuário clicar em "voltar" no celular, ele não volta pro painel.
       router.replace('/admin/login'); 
-      
     } catch (error) {
-      // Dispara nos devTolls o problema caso de desconexão bloqueada
       console.error("Erro ao sair:", error);
-      // Notifica com o Alert nativo cru Javascript que houve treta na tela de Sair.
-      alert("Erro ao tentar sair do sistema.");
+      // Se a internet cair ou o Firebase falhar, exibe um alerta nativo avisando o usuário
+      Alert.alert("Erro", "Erro ao tentar sair do sistema.");
     }
   };
 
-  // Centraliza e minimiza a escrita código repetido "Cards de Botões das Áreas principais" em uma Função Component-Creator Arrow inline
+  /**
+   * Componente reutilizável (Função Helper).
+   * Em vez de copiar e colar o mesmo código visual para os 3 botões (Pedidos, Financeiro, Cardápio),
+   * criamos essa função. Você passa as informações, e ela monta o botão pra você.
+   */
   const renderMenuCard = (title, description, iconName, route, color) => (
-    // Card Wrapper Container agindo como Clicavel jogando rotas Push no router 
-    <button 
-      className="menuCard" 
-      onClick={() => router.push(route)}
+    <TouchableOpacity 
+      activeOpacity={0.8} // Quando clicado, a opacidade diminui levemente, dando efeito de clique
+      style={styles.menuCard} 
+      onPress={() => router.push(route)} // Ao clicar, navega para a rota passada como parâmetro
     >
-      {/* Insere cores de backgrounds em transparência Opacidade 15Hex (%) e a base solida Color Prop como Ícone */}
-      <div className="iconContainer" style={{ backgroundColor: color + '15' }}>
+      {/* Container do ícone: Repare no 'color + 15'. Isso pega a cor principal e adiciona '15' em Hexadecimal para criar um fundo translúcido da mesma cor do ícone! */}
+      <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
         <Ionicons name={iconName} size={32} color={color} />
-      </div>
-      {/* Alinha as descrições em bloco de texto e títulos custom */}
-      <div className="menuInfo">
-        <span className="menuTitle">{title}</span>
-        <span className="menuDescription">{description}</span>
-      </div>
-      {/* Adiciona um chevron setinha pro lado de cor cinza para intuir o Clico Touch Screen Call To action */}
-      <Ionicons name="chevron-forward" size={24} color="#CCC" />
-    </button>
+      </View>
+      
+      {/* Textos do botão */}
+      <View style={styles.menuInfo}>
+        <Text style={styles.menuTitle}>{title}</Text>
+        <Text style={styles.menuDescription}>{description}</Text>
+      </View>
+      
+      {/* Setinha para a direita no final do card, indicando que é clicável */}
+      <Ionicons name="chevron-forward" size={24} color="#CCCCCC" />
+    </TouchableOpacity>
   );
 
+  // --- RENDERIZAÇÃO DA TELA (O que o usuário vê) ---
   return (
-    // Tela completa App
-    <div className="dashboardContainer">
-      {/* Top Header App Bars Navbar Estilos Globais Orange PedeAe */}
-      <header className="dashboardHeader">
-        {/* Adiciona link pra quem quer dar um push back à Home Cliente principal Root Router App */}
-        <button className="iconBtn" onClick={() => router.push('/')}>
-          <Ionicons name="home-outline" size={26} color="#FFF" />
-        </button>
+    <View style={styles.dashboardContainer}>
+      
+      {/* BARRA SUPERIOR (HEADER) */}
+      <View style={styles.dashboardHeader}>
+        {/* Botão de ir para o App/Site cliente */}
+        <TouchableOpacity activeOpacity={0.8} style={styles.iconBtn} onPress={() => router.push('/')}>
+          <Ionicons name="home-outline" size={26} color="#FFFFFF" />
+        </TouchableOpacity>
         
-        {/* Título textual indicativo */}
-        <span className="headerText">Painel de Controle</span>
+        <Text style={styles.headerText}>Painel de Controle</Text>
         
-        {/* BOTÃO DE LOGOUT AQUI */}
-        {/* O OnCLick liga as funções Firebase de Sing Outs limpando storages sessions locais de device Auth Caches. */}
-        <button className="iconBtn" onClick={handleSair} title="Sair do Sistema">
-          <Ionicons name="log-out-outline" size={28} color="#FFF" />
-        </button>
-      </header>
+        {/* Botão de Sair (Executa a função handleSair) */}
+        <TouchableOpacity 
+          activeOpacity={0.8} 
+          style={styles.iconBtn} 
+          onPress={handleSair} 
+          accessibilityLabel="Sair do Sistema" // Bom para acessibilidade (leitores de tela)
+        >
+          <Ionicons name="log-out-outline" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
-      {/* Frame Principal Branco do Sistema Flex Container das Lists */}
-      <main className="dashboardContent">
-        {/* Agrupamento Greeting / Cumprimentões Iniciais Título da Page */}
-        <div className="welcomeSection">
-          <h2 className="welcomeText">Olá, Administrador 👋</h2>
-          <p className="subtitleText">O que você deseja gerenciar hoje?</p>
-        </div>
-
-        {/* Lista Container Gap englobados do Grid */}
-        <div className="menuContainer">
+      {/* ÁREA COM ROLAGEM */}
+      {/* O ScrollView é vital aqui. Se o celular for pequeno (ex: iPhone SE), os cards não vão caber na tela toda. O ScrollView permite arrastar para ver o resto. */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.dashboardContent}>
           
-          {/* Constroi Componentizar Cards Botão Painel de Pedidos/KDS usando chamadas CallBack do Const Creator Function Acima */}
-          {renderMenuCard(
-            "Gestão de Pedidos", // Prop de Título
-            "Acompanhe e atualize o status dos pedidos em tempo real.", // Description Textual Text
-            "fast-food", // Name prop pro pacote Ionicons Native Componentizar render 
-            "/admin/dashboard/pedidos", // Destino Absoluto da URL Next/Expo Router push function pointer
-            "#E33E42" // Cor Predominante Tematizar Theme Base Vermelho Alert App 
-          )}
+          {/* TEXTO DE BOAS-VINDAS */}
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeText}>Olá, Administrador 👋</Text>
+            <Text style={styles.subtitleText}>O que você deseja gerenciar hoje?</Text>
+          </View>
 
-          {/* Chama Render do modulo Relatórios e Dashboard Dinâmicos*/}
-          {renderMenuCard(
-            "Financeiro",
-            "Visualize suas receitas, gráficos e fluxo de caixa.",
-            "bar-chart",
-            "/admin/dashboard/financeiro",
-            "#FF8C00" // Laranja Principal 
-          )}
+          {/* LISTA DE OPÇÕES DO MENU */}
+          <View style={styles.menuContainer}>
+            
+            {/* Usa a função auxiliar para desenhar o botão de Pedidos (Vermelho) */}
+            {renderMenuCard(
+              "Gestão de Pedidos",
+              "Acompanhe e atualize o status dos pedidos em tempo real.",
+              "fast-food",
+              "/admin/dashboard/pedidos",
+              "#E33E42" 
+            )}
 
-          {/* Chama Render do Admin Cadastros C.R.U.D base Firestore produtos de Cardápio App Pedeaê */}
-          {renderMenuCard(
-            "Cardápio",
-            "Adicione, edite ou remova produtos do seu catálogo.",
-            "restaurant",
-            "/admin/dashboard/cardapio",
-            "#4CAF50" // Verde Sucesso App Add Items
-          )}
-        </div>
-      </main>
-    </div>
+            {/* Usa a função auxiliar para desenhar o botão Financeiro (Laranja) */}
+            {renderMenuCard(
+              "Financeiro",
+              "Visualize suas receitas, gráficos e fluxo de caixa.",
+              "bar-chart",
+              "/admin/dashboard/financeiro",
+              "#FF8C00" 
+            )}
+
+            {/* Usa a função auxiliar para desenhar o botão do Cardápio (Verde) */}
+            {renderMenuCard(
+              "Cardápio",
+              "Adicione, edite ou remova produtos do seu catálogo.",
+              "restaurant",
+              "/admin/dashboard/cardapio",
+              "#4CAF50" 
+            )}
+            
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
